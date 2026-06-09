@@ -1,0 +1,8 @@
+node_modules/
+.env
+CLAUDE.local.md
+.env-loeng
+.env-loeng02
+.env.example
+/.claude
+package-lock.json

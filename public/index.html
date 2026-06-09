@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarketMaker Configuration</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; background: #f0f2f5; color: #222; }
+
+    /* ── Nav ── */
+    nav {
+      background: #1a1a2e; color: #fff;
+      padding: 0 16px; display: flex; align-items: center; gap: 8px; height: 48px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .nav-title { font-weight: 700; font-size: 15px; white-space: nowrap; margin-right: 12px; }
+    .nav-tabs { display: flex; gap: 2px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+    .nav-tabs::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      background: transparent; color: #9aa3b0; border: none;
+      padding: 6px 13px; cursor: pointer; font-size: 13px; white-space: nowrap;
+      border-bottom: 2px solid transparent; transition: color .15s;
+    }
+    .tab-btn:hover { color: #fff; }
+    .tab-btn.active { color: #fff; border-bottom-color: #4fc3f7; }
+    .nav-auth { display: flex; align-items: center; gap: 8px; margin-left: auto; flex-shrink: 0; }
+    .nav-user { font-size: 12px; color: #9aa3b0; }
+    .btn-logout {
+      background: #c0392b; color: #fff; border: none;
+      padding: 4px 10px; cursor: pointer; border-radius: 3px; font-size: 12px;
+    }
+
+    /* ── Context bar ── */
+    #ctx-bar {
+      background: #fff; border-bottom: 1px solid #ddd;
+      padding: 8px 16px; display: none; align-items: center; gap: 20px;
+      font-size: 13px; position: sticky; top: 48px; z-index: 99;
+    }
+    .ctx-group { display: flex; align-items: center; gap: 8px; }
+    .ctx-label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .4px; }
+    #ctx-org-val { font-weight: 700; color: #1a1a2e; font-size: 13px; }
+    #ctx-ccy-pair {
+      padding: 5px 9px; border: 1px solid #ccc; border-radius: 4px;
+      font-size: 13px; font-weight: 600; width: 110px; letter-spacing: .5px; outline: none;
+    }
+    #ctx-ccy-pair:focus { border-color: #4fc3f7; }
+    .ctx-hint { font-size: 11px; color: #aaa; }
+
+    /* ── WebSocket status indicator ── */
+    .ws-indicator { display: flex; align-items: center; gap: 5px; font-size: 12px; color: #9aa3b0; flex-shrink: 0; }
+    .ws-dot { width: 9px; height: 9px; border-radius: 50%; background: #555; flex-shrink: 0; transition: background .3s; }
+    .ws-dot.connected    { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
+    .ws-dot.disconnected { background: #e74c3c; }
+    .ws-dot.unconfigured { background: #555; }
+
+    /* ── Login ── */
+    #login-panel {
+      max-width: 380px; margin: 80px auto;
+      background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 28px;
+    }
+    #login-panel h2 { margin-bottom: 20px; font-size: 18px; }
+    .lf { margin-bottom: 14px; }
+    .lf label { display: block; margin-bottom: 4px; font-weight: 500; font-size: 13px; }
+    .lf input {
+      width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px;
+      font-size: 14px; outline: none;
+    }
+    .lf input:focus { border-color: #4fc3f7; }
+    .btn-login {
+      width: 100%; padding: 10px; background: #2980b9; color: #fff;
+      border: none; cursor: pointer; border-radius: 4px; font-size: 14px; font-weight: 600;
+    }
+    .btn-login:hover { background: #3498db; }
+    #login-error { margin-top: 10px; color: #c0392b; font-size: 13px; min-height: 18px; }
+
+    /* ── Main ── */
+    #main-content { padding: 16px; max-width: 1800px; margin: 0 auto; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .section-title {
+      font-size: 17px; font-weight: 700; margin-bottom: 14px;
+      padding-bottom: 8px; border-bottom: 2px solid #ddd; color: #1a1a2e;
+    }
+
+    /* ── Resources grid ── */
+    .resources-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(460px, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    /* ── Resource card ── */
+    .resource-card {
+      background: #fff; border: 1px solid #ddd; border-radius: 6px;
+      padding: 16px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .resource-header { display: flex; align-items: center; }
+    .resource-title { font-weight: 700; font-size: 13px; color: #1a1a2e; }
+
+    /* ── Method buttons ── */
+    .method-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+    .method-btn {
+      padding: 5px 14px; border: 2px solid transparent; border-radius: 4px;
+      font-size: 12px; font-weight: 700; font-family: monospace; cursor: pointer;
+      opacity: 0.45; transition: opacity .15s;
+    }
+    .method-btn:hover { opacity: 0.75; }
+    .method-btn.active { opacity: 1; border-color: rgba(0,0,0,.25); }
+    .method-btn.m-get    { background: #d4edda; color: #155724; }
+    .method-btn.m-post   { background: #cce5ff; color: #004085; }
+    .method-btn.m-put    { background: #fff3cd; color: #856404; }
+    .method-btn.m-delete { background: #f8d7da; color: #721c24; }
+
+    /* ── Form fields ── */
+    .form-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    .form-field { display: flex; flex-direction: column; gap: 3px; min-width: 120px; flex: 1; }
+    .form-field label {
+      font-size: 10px; color: #666; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .4px;
+    }
+    .form-field input, .form-field select {
+      padding: 5px 7px; border: 1px solid #ccc; border-radius: 3px;
+      font-size: 12px; outline: none;
+    }
+    .form-field input:focus, .form-field select:focus { border-color: #4fc3f7; }
+
+    /* ── Array sections ── */
+    .array-section {
+      border: 1px solid #e4e8ed; border-radius: 4px;
+      padding: 10px 12px; background: #fafbfc;
+    }
+    .array-header {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+    }
+    .array-label {
+      font-size: 11px; font-weight: 700; color: #555;
+      text-transform: uppercase; letter-spacing: .4px;
+    }
+    .array-hint {
+      font-size: 10px; color: #999; background: #eee;
+      padding: 1px 5px; border-radius: 2px;
+    }
+    .btn-add-row {
+      margin-left: auto; padding: 2px 9px;
+      background: #e8f4fd; border: 1px solid #b3d7f5;
+      border-radius: 3px; font-size: 11px; cursor: pointer; color: #004085;
+    }
+    .btn-add-row:hover { background: #d0eafa; }
+    .array-row {
+      display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end;
+      padding: 6px 0; border-top: 1px solid #eee;
+    }
+    .array-cell { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 75px; }
+    .array-cell label { font-size: 10px; color: #888; font-weight: 600; }
+    .array-cell input, .array-cell select {
+      padding: 4px 5px; border: 1px solid #ccc; border-radius: 3px;
+      font-size: 11px; outline: none; min-width: 0;
+    }
+    .array-cell input:focus, .array-cell select:focus { border-color: #4fc3f7; }
+    .btn-rm-row {
+      padding: 4px 8px; background: #fff0f0; border: 1px solid #fcc;
+      border-radius: 3px; cursor: pointer; font-size: 13px; line-height: 1;
+      align-self: flex-end; flex-shrink: 0; color: #c0392b;
+    }
+    .btn-rm-row:hover { background: #fdd; }
+    .json-textarea {
+      width: 100%; font-family: 'SFMono-Regular', Consolas, monospace;
+      font-size: 11px; border: 1px solid #ccc; border-radius: 3px;
+      padding: 6px; resize: vertical; outline: none; line-height: 1.5;
+    }
+    .json-textarea:focus { border-color: #4fc3f7; }
+
+    /* ── Body form ── */
+    .body-form { border-top: 1px solid #f0f0f0; padding-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+
+    /* ── Execute button ── */
+    .btn-exec {
+      align-self: flex-start; padding: 6px 18px;
+      background: #2980b9; color: #fff; border: none;
+      cursor: pointer; border-radius: 3px; font-size: 13px; font-weight: 600;
+    }
+    .btn-exec:hover { background: #3498db; }
+    .btn-exec:disabled { background: #95a5a6; cursor: not-allowed; }
+
+    /* ── Response area ── */
+    .resp-area {
+      background: #f8f9fa; border: 1px solid #ddd; border-radius: 4px;
+      padding: 10px; min-height: 36px;
+    }
+    .resp-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .resp-placeholder { color: #aaa; font-style: italic; font-size: 12px; }
+    .resp-pre {
+      font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px;
+      white-space: pre-wrap; word-break: break-all;
+      max-height: 400px; overflow-y: auto; line-height: 1.5;
+    }
+
+    /* ── Status / method badges ── */
+    .status-badge {
+      padding: 2px 8px; border-radius: 3px;
+      font-size: 11px; font-weight: 700; font-family: monospace;
+    }
+    .s-ok  { background: #d4edda; color: #155724; }
+    .s-err { background: #f8d7da; color: #721c24; }
+    .method-badge {
+      padding: 2px 8px; border-radius: 3px;
+      font-size: 11px; font-weight: 700; font-family: monospace;
+    }
+    .m-get    { background: #d4edda; color: #155724; }
+    .m-post   { background: #cce5ff; color: #004085; }
+    .m-put    { background: #fff3cd; color: #856404; }
+    .m-delete { background: #f8d7da; color: #721c24; }
+
+    /* ── Response table ── */
+    .resp-table { width: 100%; border-collapse: collapse; font-size: 12px; font-family: monospace; }
+    .resp-table td { padding: 5px 8px; border: 1px solid #e0e0e0; vertical-align: top; }
+    .tbl-key { background: #f0f2f5; font-weight: 600; color: #444; width: 38%; white-space: nowrap; }
+    .tbl-val { color: #222; word-break: break-all; }
+
+    /* ── Live feed ── */
+    .live-feed {
+      background: #fff; border: 1px solid #ddd; border-radius: 5px;
+      padding: 14px; margin-top: 12px;
+    }
+    .live-feed-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .live-feed-header h3 { font-size: 14px; font-weight: 700; }
+    .feed-count { font-size: 12px; color: #888; }
+    .btn-clear-feed {
+      margin-left: auto; padding: 3px 10px; background: #eee;
+      border: 1px solid #ccc; border-radius: 3px; cursor: pointer; font-size: 12px;
+    }
+    .btn-clear-feed:hover { background: #ddd; }
+    .live-feed-entries {
+      max-height: 400px; overflow-y: auto;
+      font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12px;
+    }
+    .feed-entry {
+      border-bottom: 1px solid #f0f0f0; padding: 6px 0;
+      animation: fadeIn .2s ease;
+    }
+    @keyframes fadeIn { from { background: #fffbcc; } to { background: transparent; } }
+    .feed-ts { color: #888; font-size: 11px; }
+    .feed-type {
+      display: inline-block; margin: 0 6px;
+      padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 700;
+      background: #cce5ff; color: #004085;
+    }
+    .feed-data { white-space: pre-wrap; word-break: break-all; margin: 4px 0 0; color: #333; line-height: 1.45; }
+    .feed-placeholder { color: #aaa; font-style: italic; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-title">MarketMaker Config</span>
+  <div class="nav-tabs" id="nav-tabs"></div>
+  <div class="nav-auth">
+    <div class="ws-indicator" id="ws-indicator" title="Live price stream">
+      <span class="ws-dot unconfigured" id="ws-dot"></span>
+      <span id="ws-label">Stream</span>
+    </div>
+    <span class="nav-user" id="nav-user"></span>
+    <button class="btn-logout" id="btn-logout" style="display:none" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<!-- Context bar (org + ccy pair) -->
+<div id="ctx-bar">
+  <div class="ctx-group">
+    <span class="ctx-label">Org</span>
+    <span id="ctx-org-val">—</span>
+  </div>
+  <div class="ctx-group">
+    <span class="ctx-label">CCY Pair</span>
+    <input id="ctx-ccy-pair" placeholder="EUR/USD" autocomplete="off" spellcheck="false">
+    <span class="ctx-hint">applies to all panels</span>
+  </div>
+</div>
+
+<!-- Login panel -->
+<div id="login-panel">
+  <h2>MarketMaker Login</h2>
+  <div class="lf">
+    <label>Username</label>
+    <input type="text" id="login-user" placeholder="username" autocomplete="username">
+  </div>
+  <div class="lf">
+    <label>Password</label>
+    <input type="password" id="login-pass" placeholder="password" autocomplete="current-password">
+  </div>
+  <div class="lf">
+    <label>Organization</label>
+    <input type="text" id="login-org" placeholder="org short name">
+  </div>
+  <button class="btn-login" onclick="login()">Login</button>
+  <div id="login-error"></div>
+</div>
+
+<!-- Main content -->
+<div id="main-content" style="display:none">
+  <div id="section-broker"        class="section"></div>
+  <div id="section-pricing"       class="section"></div>
+  <div id="section-providers"     class="section"></div>
+  <div id="section-streamprices"  class="section"></div>
+  <div id="section-tierprices"    class="section"></div>
+  <div id="section-forwardpoints" class="section"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
