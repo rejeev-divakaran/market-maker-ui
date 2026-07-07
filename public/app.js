@@ -666,7 +666,7 @@ function setAuthenticated(auth, user, org) {
 const WS_ROUTES = {
   mmCorePriceData:   'pricing',
   mmTieredPriceData: 'tierprices',
-  forwardPointsData: 'forwardpoints'
+  forwardPointsOutput: 'forwardpoints'
 };
 const feedCounts = {};
 let wsConn = null;
